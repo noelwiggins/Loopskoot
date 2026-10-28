@@ -1,0 +1,11 @@
+{
+  "name": "loopskoot",
+  "version": "1.0.0",
+  "description": "EchoField Looper PWA",
+  "scripts": {
+    "start": "npx serve . -l ${PORT:-3000} --single"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
