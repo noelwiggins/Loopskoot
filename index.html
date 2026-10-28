@@ -5,10 +5,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="EchoField">
+<meta name="apple-mobile-web-app-title" content="LoopSkoot">
 <link id="pwaManifest" rel="manifest" href="">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EchoField — Looper</title>
+<title>LoopSkoot</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
@@ -1053,7 +1053,7 @@ body.toybox .meter-bar         {background:#0055cc!important}
   <div class="install-icon">E</div>
   <div class="install-text">
     <div class="install-title">Add to Home Screen</div>
-    <div class="install-sub">Install EchoField · works offline</div>
+    <div class="install-sub">Install LoopSkoot · works offline</div>
   </div>
   <button class="install-btn" id="installBtn">Install</button>
   <button class="install-dismiss" id="installDismiss">×</button>
@@ -1061,7 +1061,7 @@ body.toybox .meter-bar         {background:#0055cc!important}
 
 <header>
   <div class="header-brand">
-    <div class="logo">EchoField</div>
+    <div class="logo">LoopSkoot</div>
     <div class="logo-tag">Looper</div>
   </div>
   <div class="header-center">
@@ -6291,7 +6291,7 @@ initChannels();
   try {
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="38" fill="#07080d"/><g fill="rgba(58,184,255,0.8)"><rect x="24" y="80" width="8" height="32" rx="4"/><rect x="38" y="64" width="8" height="64" rx="4"/><rect x="52" y="72" width="8" height="48" rx="4"/><rect x="66" y="56" width="8" height="80" rx="4"/><rect x="80" y="68" width="8" height="56" rx="4"/><rect x="94" y="48" width="8" height="96" rx="4"/><rect x="108" y="60" width="8" height="72" rx="4"/><rect x="122" y="70" width="8" height="52" rx="4"/><rect x="136" y="58" width="8" height="76" rx="4"/><rect x="150" y="76" width="8" height="40" rx="4"/><rect x="164" y="84" width="8" height="24" rx="4"/></g><circle cx="152" cy="44" r="10" fill="#ff3c3c" opacity="0.9"/></svg>';
     const svgUrl = URL.createObjectURL(new Blob([svg], {type:'image/svg+xml'}));
-    const mf = {name:'EchoField Looper',short_name:'EchoField',start_url:'./',display:'standalone',background_color:'#07080d',theme_color:'#07080d',icons:[{src:svgUrl,sizes:'192x192',type:'image/svg+xml',purpose:'any maskable'}]};
+    const mf = {name:'LoopSkoot',short_name:'LoopSkoot',start_url:'./',display:'standalone',background_color:'#07080d',theme_color:'#07080d',icons:[{src:svgUrl,sizes:'192x192',type:'image/svg+xml',purpose:'any maskable'}]};
     document.getElementById('pwaManifest').href = URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:'application/manifest+json'}));
     const al = document.createElement('link'); al.rel='apple-touch-icon'; al.href=svgUrl; document.head.appendChild(al);
   } catch(e){}
