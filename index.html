@@ -345,13 +345,29 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 
 /* ── KEYBOARD CHANNEL ── */
 .keyboard-channel{
-  position:sticky;bottom:0;z-index:50;
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
   background:rgba(12,8,22,0.97);
   border-top:3px solid var(--z-keys-border);
-  backdrop-filter:blur(14px);
-  padding:10px 20px 12px;
-  box-shadow:0 -4px 24px rgba(130,40,200,0.12);
+  backdrop-filter:blur(16px);
+  padding:0 20px 12px;
+  box-shadow:0 -6px 32px rgba(130,40,200,0.18);
+  transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);
+  touch-action:none;
 }
+/* drag pill handle */
+.kb-drag-pill{
+  width:36px;height:4px;border-radius:2px;
+  background:rgba(200,125,255,0.35);
+  margin:8px auto 6px;cursor:grab;
+  transition:background 0.2s;
+}
+.kb-drag-pill:hover,.kb-drag-pill:active{background:rgba(200,125,255,0.7)}
+/* collapsed: sheet slides down so only the header shows */
+#keyboardUI.kb-collapsed{
+  transform:translateY(calc(100% - 48px));
+}
+/* nudge main content up so keyboard doesn't cover bottom items */
+body{padding-bottom:52px}
 /* keyboard zone header strip */
 .keyboard-channel::before{
   content:'&#9835; KEYBOARD';
@@ -1793,6 +1809,7 @@ body.toybox .meter-bar         {background:#0055cc!important}
 </footer>
 
 <div id="keyboardUI" class="keyboard-channel zone-keys" style="display:none">
+  <div class="kb-drag-pill" id="kbDragPill"></div>
   <div class="kb-section-hdr">
     <span class="kb-title">Keyboard · Polyphonic Synth</span>
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -6400,43 +6417,74 @@ initChannels();
     });
   });
 
-  // Keyboard section collapse
+  // ── Keyboard bottom-sheet: swipe + tap to show/hide ──────────
   var kbUI = document.getElementById('keyboardUI');
-  var kbHdr = kbUI && kbUI.querySelector('.kb-section-hdr');
-  if (kbUI && kbHdr) {
-    // Add collapse button to kb header
-    var kbBtn = document.createElement('span');
-    kbBtn.className = 'kb-collapse-btn';
-    kbBtn.textContent = '▾';
-    kbHdr.appendChild(kbBtn);
+  if (kbUI) {
+    var pill = document.getElementById('kbDragPill');
+    var kbHdr = kbUI.querySelector('.kb-section-hdr');
 
-    // Wrap kb content (everything after kb-section-hdr) in .kb-body
-    if (!kbUI.querySelector('.kb-body')) {
-      var kbBody = document.createElement('div');
-      kbBody.className = 'kb-body';
-      kbBody.style.maxHeight = '9999px';
-      var toMove = [];
-      var found = false;
-      Array.from(kbUI.childNodes).forEach(function(n){ if(found) toMove.push(n); if(n===kbHdr) found=true; });
-      toMove.forEach(function(n){ kbBody.appendChild(n); });
-      kbUI.appendChild(kbBody);
+    function kbSetCollapsed(on, animate) {
+      if (!animate) kbUI.style.transition = 'none';
+      kbUI.classList.toggle('kb-collapsed', on);
+      if (!animate) requestAnimationFrame(function(){ kbUI.style.transition = ''; });
+      var st = loadState(); st['keyboard'] = on; saveState(st);
     }
 
-    var state = loadState();
-    if (state['keyboard']) {
-      kbUI.classList.add('kb-collapsed');
-      var b = kbUI.querySelector('.kb-body');
-      if (b) b.style.maxHeight = '0';
+    // Restore saved state
+    if (loadState()['keyboard']) kbSetCollapsed(true, false);
+
+    // Tap pill or header to toggle
+    function toggleKb(){ kbSetCollapsed(!kbUI.classList.contains('kb-collapsed'), true); }
+    if (pill) pill.addEventListener('click', toggleKb);
+    if (kbHdr) kbHdr.addEventListener('click', toggleKb);
+
+    // Swipe gesture on the sheet
+    var swipeStartY = null, swipeStartX = null, dragging = false, startTranslate = 0;
+    var SWIPE_THRESHOLD = 40;
+
+    function getTranslate(){ return kbUI.classList.contains('kb-collapsed') ? (kbUI.offsetHeight - 48) : 0; }
+
+    function onPointerDown(e){
+      if (e.target.closest('.kb-keys,.kb-wrap,input,button,select')) return;
+      swipeStartY = e.touches ? e.touches[0].clientY : e.clientY;
+      swipeStartX = e.touches ? e.touches[0].clientX : e.clientX;
+      startTranslate = getTranslate();
+      dragging = false;
+    }
+    function onPointerMove(e){
+      if (swipeStartY === null) return;
+      var cy = e.touches ? e.touches[0].clientY : e.clientY;
+      var cx = e.touches ? e.touches[0].clientX : e.clientX;
+      var dy = cy - swipeStartY;
+      var dx = Math.abs(cx - swipeStartX);
+      if (!dragging && Math.abs(dy) < 6) return;
+      if (!dragging && dx > Math.abs(dy)) { swipeStartY = null; return; }
+      dragging = true;
+      if (e.cancelable) e.preventDefault();
+      var max = kbUI.offsetHeight - 48;
+      var t = Math.max(0, Math.min(max, startTranslate + dy));
+      kbUI.style.transition = 'none';
+      kbUI.style.transform = 'translateY('+t+'px)';
+    }
+    function onPointerUp(e){
+      if (swipeStartY === null) return;
+      var cy = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+      var dy = cy - swipeStartY;
+      kbUI.style.transition = '';
+      kbUI.style.transform = '';
+      if (dragging) {
+        var collapsed = kbUI.classList.contains('kb-collapsed');
+        kbSetCollapsed(collapsed ? dy > -SWIPE_THRESHOLD : dy > SWIPE_THRESHOLD, true);
+      }
+      swipeStartY = null; dragging = false;
     }
 
-    kbHdr.addEventListener('click', function(){
-      var state = loadState();
-      var collapsed = kbUI.classList.toggle('kb-collapsed');
-      state['keyboard'] = collapsed;
-      saveState(state);
-      var b = kbUI.querySelector('.kb-body');
-      if (b) b.style.maxHeight = collapsed ? '0' : '9999px';
-    });
+    kbUI.addEventListener('touchstart', onPointerDown, {passive:true});
+    kbUI.addEventListener('touchmove',  onPointerMove, {passive:false});
+    kbUI.addEventListener('touchend',   onPointerUp,   {passive:true});
+    kbUI.addEventListener('mousedown',  onPointerDown);
+    window.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('mouseup',   onPointerUp);
   }
 })();
 </script>
