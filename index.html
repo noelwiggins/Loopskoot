@@ -727,8 +727,31 @@ input[type=range].riff-sl-b{accent-color:#3ab8ff}
   display:flex;align-items:center;gap:10px;
   margin-bottom:14px;padding:0 0 10px 6px;
   border-bottom:1px solid rgba(255,255,255,0.08);
-  flex-wrap:wrap;
+  flex-wrap:wrap;cursor:pointer;user-select:none;
 }
+.zone-collapse-btn{
+  margin-left:auto;width:20px;height:20px;border-radius:50%;
+  border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:rgba(255,255,255,0.45);flex-shrink:0;
+  transition:transform 0.25s,color 0.2s;
+}
+.zone-collapse-btn:hover{color:rgba(255,255,255,0.8);border-color:rgba(255,255,255,0.35)}
+.section-zone.is-collapsed .zone-collapse-btn{transform:rotate(-90deg)}
+.zone-body{overflow:hidden;transition:max-height 0.32s cubic-bezier(0.4,0,0.2,1),opacity 0.25s}
+.section-zone.is-collapsed .zone-body{max-height:0!important;opacity:0;pointer-events:none}
+/* keyboard collapse */
+.kb-collapse-btn{
+  width:20px;height:20px;border-radius:50%;flex-shrink:0;
+  border:1px solid rgba(200,125,255,0.25);background:rgba(200,125,255,0.06);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:rgba(200,125,255,0.5);cursor:pointer;
+  transition:transform 0.25s,color 0.2s;
+}
+.kb-collapse-btn:hover{color:rgba(200,125,255,0.9)}
+#keyboardUI.kb-collapsed .kb-collapse-btn{transform:rotate(-90deg)}
+.kb-body{overflow:hidden;transition:max-height 0.32s cubic-bezier(0.4,0,0.2,1),opacity 0.25s}
+#keyboardUI.kb-collapsed .kb-body{max-height:0!important;opacity:0;pointer-events:none}
 .zone-icon{font-size:15px;flex-shrink:0;line-height:1}
 .zone-title{
   font-family:'Cormorant Garamond',serif;
@@ -1144,9 +1167,12 @@ body.toybox .meter-bar         {background:#0055cc!important}
         <span class="zone-icon">&#127897;</span>
         <span class="zone-title">Loop Channels</span>
         <span class="zone-badge" style="color:var(--z-loop-accent)">Record · Layer · Loop</span>
-        <span class="zone-subtitle" id="activeCount" style="margin-left:auto">0 / 6 active</span>
+        <span class="zone-subtitle" id="activeCount">0 / 6 active</span>
+      <span class="zone-collapse-btn">▾</span>
       </div>
+      <div class="zone-body" style="max-height:9999px">
       <div class="channels-grid" id="channelsGrid"></div>
+      </div>
     </div>
 
         <!-- ══ PERCUSSION ZONE ══ -->
@@ -1156,8 +1182,11 @@ body.toybox .meter-bar         {background:#0055cc!important}
         <span class="zone-title">Percussion</span>
         <span class="zone-subtitle">6 channels</span>
         <span class="zone-badge" style="color:var(--z-perc-accent)">Kick · Snare · Cymbal</span>
+      <span class="zone-collapse-btn">▾</span>
       </div>
+      <div class="zone-body" style="max-height:9999px">
       <div class="perc-grid" id="percGrid"></div>
+      </div>
     </div>
 
         <!-- ══ VOCAL / SPATIAL ZONE ══ -->
@@ -1167,6 +1196,7 @@ body.toybox .meter-bar         {background:#0055cc!important}
         <span class="zone-title">Vocal Processing</span>
         <span class="zone-subtitle">Live voice tools</span>
         <span class="zone-badge" style="color:var(--z-vocal-accent)">Spatial · Vocoder · Loop</span>
+      <span class="zone-collapse-btn">▾</span>
       </div>
           <!-- Spatial Inversion Channel -->
     <div class="section-hdr"><div class="section-title">Spatial Inversion</div><div class="section-count">Phase · Background</div></div>
@@ -1390,6 +1420,7 @@ body.toybox .meter-bar         {background:#0055cc!important}
         <span class="zone-title">Patterns &amp; Samples</span>
         <span class="zone-subtitle">Pre-built sequences</span>
         <span class="zone-badge" style="color:var(--z-sample-accent)">Melody · Drums · Bass</span>
+      <span class="zone-collapse-btn">▾</span>
       </div>
       <!-- Melody Channel -->
     <div class="section-hdr" style="margin-top:16px">
@@ -1681,6 +1712,7 @@ body.toybox .meter-bar         {background:#0055cc!important}
         <span class="zone-title">Generative Session</span>
         <span class="zone-subtitle">Auto-pilot mode</span>
         <span class="zone-badge" style="color:var(--z-gen-accent)">Archetype · Arc · Evolution</span>
+      <span class="zone-collapse-btn">▾</span>
       </div>
       <!-- Generative Engine -->
     <div class="gen-panel" id="genPanel">
@@ -6322,6 +6354,90 @@ initChannels();
       setTimeout(() => banner && banner.classList.add('visible'), 1500);
     }
   });
+})();
+
+/* ── Zone & Keyboard collapse ─────────────────────────────── */
+(function(){
+  const STORAGE_KEY = 'oopdeo_collapsed';
+  function loadState(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch(e){ return {}; } }
+  function saveState(s){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }catch(e){} }
+
+  // For each section-zone: wrap children after zone-label-bar in a .zone-body
+  document.querySelectorAll('.section-zone').forEach(function(zone){
+    var zoneId = zone.className.split(' ').find(function(c){ return c !== 'section-zone'; }) || zone.id || ('zone-'+Math.random());
+    var label = zone.querySelector('.zone-label-bar');
+    if (!label) return;
+
+    // Wrap remaining children in .zone-body if not already wrapped
+    if (!zone.querySelector('.zone-body')) {
+      var body = document.createElement('div');
+      body.className = 'zone-body';
+      body.style.maxHeight = '9999px';
+      // move all children after label into body
+      var toMove = [];
+      var found = false;
+      Array.from(zone.childNodes).forEach(function(n){ if(found) toMove.push(n); if(n===label) found=true; });
+      toMove.forEach(function(n){ body.appendChild(n); });
+      zone.appendChild(body);
+    }
+
+    // Restore saved state
+    var state = loadState();
+    if (state[zoneId]) {
+      zone.classList.add('is-collapsed');
+      var b = zone.querySelector('.zone-body');
+      if (b) b.style.maxHeight = '0';
+    }
+
+    // Click to toggle
+    label.addEventListener('click', function(){
+      var state = loadState();
+      var collapsed = zone.classList.toggle('is-collapsed');
+      state[zoneId] = collapsed;
+      saveState(state);
+      var b = zone.querySelector('.zone-body');
+      if (b) b.style.maxHeight = collapsed ? '0' : '9999px';
+    });
+  });
+
+  // Keyboard section collapse
+  var kbUI = document.getElementById('keyboardUI');
+  var kbHdr = kbUI && kbUI.querySelector('.kb-section-hdr');
+  if (kbUI && kbHdr) {
+    // Add collapse button to kb header
+    var kbBtn = document.createElement('span');
+    kbBtn.className = 'kb-collapse-btn';
+    kbBtn.textContent = '▾';
+    kbHdr.appendChild(kbBtn);
+
+    // Wrap kb content (everything after kb-section-hdr) in .kb-body
+    if (!kbUI.querySelector('.kb-body')) {
+      var kbBody = document.createElement('div');
+      kbBody.className = 'kb-body';
+      kbBody.style.maxHeight = '9999px';
+      var toMove = [];
+      var found = false;
+      Array.from(kbUI.childNodes).forEach(function(n){ if(found) toMove.push(n); if(n===kbHdr) found=true; });
+      toMove.forEach(function(n){ kbBody.appendChild(n); });
+      kbUI.appendChild(kbBody);
+    }
+
+    var state = loadState();
+    if (state['keyboard']) {
+      kbUI.classList.add('kb-collapsed');
+      var b = kbUI.querySelector('.kb-body');
+      if (b) b.style.maxHeight = '0';
+    }
+
+    kbHdr.addEventListener('click', function(){
+      var state = loadState();
+      var collapsed = kbUI.classList.toggle('kb-collapsed');
+      state['keyboard'] = collapsed;
+      saveState(state);
+      var b = kbUI.querySelector('.kb-body');
+      if (b) b.style.maxHeight = collapsed ? '0' : '9999px';
+    });
+  }
 })();
 </script>
 </body>
